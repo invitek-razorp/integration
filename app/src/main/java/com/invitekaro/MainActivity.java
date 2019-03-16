@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
+import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -13,6 +14,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.invitekaro.model.Card;
 import com.razorpay.Checkout;
@@ -28,8 +30,10 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements PaymentResultListener {
 
+    Voucher voucharInterface = null;
+
     ArrayList<Card> cardList = new ArrayList<>();
-    private String coupon_code = "";
+    private String voucherCode = "";
     private double checkoutPrize = 0.0;
     private double offerDiscount = 0.0;
     private double toPayTotal = 0.0;
@@ -38,7 +42,15 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        int SDK_INT = android.os.Build.VERSION.SDK_INT;
+        if (SDK_INT > 8)
+        {
+            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+                    .permitAll().build();
+            StrictMode.setThreadPolicy(policy);
+            //your codes here
 
+        }
 
         String json = null;
         try {
@@ -73,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
         LinearLayout parentLayout = (LinearLayout)findViewById(R.id.parent);
         RelativeLayout checkout = (RelativeLayout)findViewById(R.id.checkout);
-        LinearLayout applyCoupon = (LinearLayout)findViewById(R.id.applyCoupon);
+        LinearLayout applyVoucher = (LinearLayout)findViewById(R.id.applyVoucher);
         LayoutInflater layoutInflater = getLayoutInflater();
         View view;
 
@@ -102,6 +114,8 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         priceValueText.setText(getPriceDisplayValue(toPayTotal));
 
         Checkout.preload(getApplicationContext());
+        initializeVoucharAPI();
+
         checkout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -109,38 +123,33 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             }
         });
 
-        applyCoupon.setOnClickListener(new View.OnClickListener() {
+        applyVoucher.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("Add Coupon");
+            builder.setTitle("Apply Coupon");
 
-            // Set up the input
             final EditText input = new EditText(MainActivity.this);
-            // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            input.setInputType(InputType.TYPE_CLASS_TEXT);
             builder.setView(input);
 
-            // Set up the buttons
             builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    coupon_code = input.getText().toString();
-                    applyVoucher(coupon_code);
+                voucherCode = input.getText().toString();
+                verifyAndStoreVoucherCode(voucherCode);
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    dialog.cancel();
+                dialog.cancel();
                 }
             });
 
             builder.show();
             }
         });
-
-
     }
 
     public void startPayment() {
@@ -202,6 +211,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     @Override
     public void onPaymentSuccess(String s) {
         Log.e("TAG", "Success in starting Razorpay Checkout" + s);
+        applyVoucher();
     }
 
     @Override
@@ -209,17 +219,29 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         Log.e("TAG", "Error in starting Razorpay Checkout" + s);
     }
 
-    public void applyVoucher(String coupon_code) {
+    public void verifyAndStoreVoucherCode(String voucherCode){
+        if (voucharInterface != null){
+            voucharInterface.checkValidity(voucherCode);
+        }
+    }
 
+    public void applyVoucher() {
+        if (voucherCode != null && voucherCode.isEmpty()) {
+            voucharInterface.redeemVoucher(voucherCode, "-1");
+        }
+    }
+
+    public void initializeVoucharAPI(){
         String apiKey     = "8531589b490dffc8e298a8b1faeae0f2";
         String merchantID = "ef993b6b-2a30-4211-a9a5-c375db7a8a15";
 
-        Voucher voucher = Voucher.getInstance();
-        voucher.initialize(merchantID, apiKey);
-        voucher.setOnVoucherResultListener(new Voucher.OnVoucherResultListener() {
+        voucharInterface = Voucher.getInstance();
+        voucharInterface.initialize(merchantID, apiKey);
+        voucharInterface.setOnVoucherResultListener(new Voucher.OnVoucherResultListener() {
             @Override
             public void onResult(int requestType, int responseCode, String response) {
 
+                Log.d("TAG", "onResult: " + requestType);
                 switch(requestType){
 
                     case Voucher.CREATE_VOUCHER:
@@ -227,7 +249,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
                         break;
 
                     case Voucher.CHECK_VOUCHER_VALIDITY:
-
+                        handleVoucharValidation(response);
                         break;
 
                     case Voucher.LOGIN:
@@ -248,21 +270,34 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
                 }
             }
             @Override
-            public void onError(int requestType, int responseCode, String errorMessage) {}
+            public void onError(int requestType, int responseCode, String errorMessage) {
+                switch(requestType){
+                    case Voucher.CHECK_VOUCHER_VALIDITY:
+                        handleVoucharValidation("");
+                        break;
+                }
+            }
 
             @Override
-            public void onException(int requestType, Exception e, String message) {}
+            public void onException(int requestType, Exception e, String message) {
+                switch(requestType){
+                    case Voucher.CHECK_VOUCHER_VALIDITY:
+                        handleVoucharValidation("");
+                        break;
+                }
+            }
         });
+    }
 
-        try{
-            voucher.login("email.Id@domain.com", "password");
-            voucher.redeemVoucher("voucherId", "userId");
-        }catch (Exception e){}
-
-        //uncomment following code after credentials
-        //voucher.login("email.Id@domain.com", "password");
-        //voucher.redeemVoucher("voucherId", "userId");
-
-
+    private void handleVoucharValidation(String response) {
+        boolean isValidVoucharCode = false;
+        Log.d("TAG", "handleVoucharValidation: " + response);
+        //Parse response json and take out the validations
+        if(!isValidVoucharCode) {
+            voucherCode = "";
+            Toast.makeText(this, "Apply coupon failed", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Coupon applied successfully", Toast.LENGTH_SHORT).show();
+        }
     }
 }
