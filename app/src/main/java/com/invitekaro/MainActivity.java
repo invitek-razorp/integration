@@ -30,6 +30,9 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
     ArrayList<Card> cardList = new ArrayList<>();
     private String coupon_code = "";
+    private double checkoutPrize = 0.0;
+    private double offerDiscount = 0.0;
+    private double toPayTotal = 0.0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,14 +54,15 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
             for (int i = 0; i < m_jArry.length(); i++) {
                 JSONObject jo_inside = m_jArry.getJSONObject(i);
-                Card location = new Card();
-                location.setCardType(jo_inside.getString("cardType"));
-                location.setCardName(jo_inside.getString("cardName"));
-                location.setCardDetail(jo_inside.getString("cardDetail"));
+                Card cardItem = new Card();
+                cardItem.setCardType(jo_inside.getString("cardType"));
+                cardItem.setCardName(jo_inside.getString("cardName"));
+                cardItem.setCardDetail(jo_inside.getString("cardDetail"));
+                cardItem.setCardPrice(jo_inside.getString("cardPrice"));
 
+                cardList.add(cardItem);
 
-                //Add your values in your `ArrayList` as below:
-                cardList.add(location);
+                checkoutPrize += cardItem.getCardPriceValue();
             }
 
         } catch (IOException ex) {
@@ -73,19 +77,29 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         LayoutInflater layoutInflater = getLayoutInflater();
         View view;
 
-        for (int i=0;i<cardList.size();i++){
+        for (int i=0; i<cardList.size(); i++){
             view = layoutInflater.inflate(R.layout.item_view, parentLayout, false);
 
             TextView cardType = (TextView)view.findViewById(R.id.cardType);
             TextView cardName = (TextView)view.findViewById(R.id.cardName);
             TextView cardDetail = (TextView)view.findViewById(R.id.cardDetail);
+            TextView cardPrice = (TextView)view.findViewById(R.id.cardPrice);
             cardType.setText(cardList.get(i).getCardType());
             cardName.setText(cardList.get(i).getCardName());
             cardDetail.setText(cardList.get(i).getCardDetail());
-
+            cardPrice.setText(getPriceDisplayValue(cardList.get(i).getCardPriceValue()));
 
             parentLayout.addView(view);
         }
+
+        toPayTotal = checkoutPrize - offerDiscount;
+
+        TextView priceValueText = (TextView)findViewById(R.id.itemTotal);
+        priceValueText.setText(getPriceDisplayValue(checkoutPrize));
+        priceValueText = (TextView)findViewById(R.id.offerDiscount);
+        priceValueText.setText(getPriceDisplayValue(offerDiscount));
+        priceValueText = (TextView)findViewById(R.id.toPayTotal);
+        priceValueText.setText(getPriceDisplayValue(toPayTotal));
 
         Checkout.preload(getApplicationContext());
         checkout.setOnClickListener(new View.OnClickListener() {
@@ -98,31 +112,31 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         applyCoupon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle("Add Coupon");
+            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            builder.setTitle("Add Coupon");
 
-                // Set up the input
-                final EditText input = new EditText(MainActivity.this);
-                // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
-                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-                builder.setView(input);
+            // Set up the input
+            final EditText input = new EditText(MainActivity.this);
+            // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            builder.setView(input);
 
-                // Set up the buttons
-                builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        coupon_code = input.getText().toString();
-                        applyVoucher(coupon_code);
-                    }
-                });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
+            // Set up the buttons
+            builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    coupon_code = input.getText().toString();
+                    applyVoucher(coupon_code);
+                }
+            });
+            builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.cancel();
+                }
+            });
 
-                builder.show();
+            builder.show();
             }
         });
 
@@ -171,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
              * Amount is always passed in PAISE
              * Eg: "500" = Rs 5.00
              */
-            options.put("amount", "500");
+            options.put("amount", toPayTotal * 100);
 
             checkout.open(activity, options);
         } catch(Exception e) {
@@ -179,6 +193,10 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         }
 
 
+    }
+
+    public String getPriceDisplayValue(double price){
+        return "Rs. " + String.valueOf(price);
     }
 
     @Override

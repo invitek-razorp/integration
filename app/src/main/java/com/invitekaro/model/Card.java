@@ -2,13 +2,17 @@ package com.invitekaro.model;
 
 
 public class Card {
-    private String cardType,cardName,cardDetail;
+    private String cardType;
+    private String cardName;
+    private String cardDetail;
+    private String cardPrice;
 
     public Card(){}
-    public Card(String cardType, String cardName, String cardDetail) {
+    public Card(String cardType, String cardName, String cardDetail, String cardPrice) {
         cardType = cardType;
         cardName = cardName;
         cardDetail = cardDetail;
+        cardPrice = cardPrice;
     }
 
     public String getCardType() {
@@ -27,10 +31,24 @@ public class Card {
         this.cardName = cardName;
     }
 
-    public String getCardDetail() {
-        return cardDetail;
+    public void  setCardPrice(String cardPrice) {
+        this.cardPrice = cardPrice;
     }
+
     public void  setCardDetail(String cardDetail) {
         this.cardDetail = cardDetail;
     }
+
+    public String getCardDetail() {
+        return cardDetail;
+    }
+
+    public double getCardPriceValue(){
+        return Double.parseDouble(this.cardPrice);
+    }
+
+    public String getCardPrice(){
+        return this.cardPrice;
+    }
+
 }
