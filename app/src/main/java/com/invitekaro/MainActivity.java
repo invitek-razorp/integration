@@ -30,7 +30,7 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements PaymentResultListener {
 
-    Voucher voucharInterface = null;
+    Voucher voucherInterface = null;
 
     ArrayList<Card> cardList = new ArrayList<>();
     private String voucherCode = "";
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
         String json = null;
         try {
-            InputStream is = getAssets().open("data.json");
+            InputStream is = getAssets().open(getString(R.string.dataFile));
             int size = is.available();
             byte[] buffer = new byte[size];
             is.read(buffer);
@@ -62,15 +62,15 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             json = new String(buffer, "UTF-8");
 
             JSONObject obj = new JSONObject(json);
-            JSONArray m_jArry = obj.getJSONArray("cards");
+            JSONArray m_jArry = obj.getJSONArray(getString(R.string.cards));
 
             for (int i = 0; i < m_jArry.length(); i++) {
                 JSONObject jo_inside = m_jArry.getJSONObject(i);
                 Card cardItem = new Card();
-                cardItem.setCardType(jo_inside.getString("cardType"));
-                cardItem.setCardName(jo_inside.getString("cardName"));
-                cardItem.setCardDetail(jo_inside.getString("cardDetail"));
-                cardItem.setCardPrice(jo_inside.getString("cardPrice"));
+                cardItem.setCardType(jo_inside.getString(getString(R.string.cardType)));
+                cardItem.setCardName(jo_inside.getString(getString(R.string.cardName)));
+                cardItem.setCardDetail(jo_inside.getString(getString(R.string.cardDetail)));
+                cardItem.setCardPrice(jo_inside.getString(getString(R.string.cardPrice)));
 
                 cardList.add(cardItem);
 
@@ -105,16 +105,10 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         }
 
         toPayTotal = checkoutPrize - offerDiscount;
-
-        TextView priceValueText = (TextView)findViewById(R.id.itemTotal);
-        priceValueText.setText(getPriceDisplayValue(checkoutPrize));
-        priceValueText = (TextView)findViewById(R.id.offerDiscount);
-        priceValueText.setText(getPriceDisplayValue(offerDiscount));
-        priceValueText = (TextView)findViewById(R.id.toPayTotal);
-        priceValueText.setText(getPriceDisplayValue(toPayTotal));
+        updateBillDetailValues();
 
         Checkout.preload(getApplicationContext());
-        initializeVoucharAPI();
+        initializeVoucherAPI();
 
         checkout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -150,6 +144,16 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             builder.show();
             }
         });
+    }
+
+    private void updateBillDetailValues(){
+
+        TextView priceValueText = (TextView)findViewById(R.id.itemTotal);
+        priceValueText.setText(getPriceDisplayValue(checkoutPrize));
+        priceValueText = (TextView)findViewById(R.id.offerDiscount);
+        priceValueText.setText(getPriceDisplayValue(offerDiscount));
+        priceValueText = (TextView)findViewById(R.id.toPayTotal);
+        priceValueText.setText(getPriceDisplayValue(toPayTotal));
     }
 
     public void startPayment() {
@@ -220,52 +224,35 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     }
 
     public void verifyAndStoreVoucherCode(String voucherCode){
-        if (voucharInterface != null){
-            voucharInterface.checkValidity(voucherCode);
+        if (voucherInterface != null){
+            voucherInterface.checkValidity(voucherCode);
         }
     }
 
     public void applyVoucher() {
         if (voucherCode != null && voucherCode.isEmpty()) {
-            voucharInterface.redeemVoucher(voucherCode, "-1");
+            voucherInterface.redeemVoucher(voucherCode, "-1");
         }
     }
 
-    public void initializeVoucharAPI(){
+    public void initializeVoucherAPI(){
         String apiKey     = "8531589b490dffc8e298a8b1faeae0f2";
         String merchantID = "ef993b6b-2a30-4211-a9a5-c375db7a8a15";
 
-        voucharInterface = Voucher.getInstance();
-        voucharInterface.initialize(merchantID, apiKey);
-        voucharInterface.setOnVoucherResultListener(new Voucher.OnVoucherResultListener() {
+        voucherInterface = Voucher.getInstance();
+        voucherInterface.initialize(merchantID, apiKey);
+        voucherInterface.setOnVoucherResultListener(new Voucher.OnVoucherResultListener() {
             @Override
             public void onResult(int requestType, int responseCode, String response) {
 
                 Log.d("TAG", "onResult: " + requestType);
                 switch(requestType){
 
-                    case Voucher.CREATE_VOUCHER:
-
-                        break;
-
                     case Voucher.CHECK_VOUCHER_VALIDITY:
-                        handleVoucharValidation(response);
-                        break;
-
-                    case Voucher.LOGIN:
-
-                        break;
-
-                    case Voucher.SIGN_UP:
-
+                        handleVoucherValidation(response);
                         break;
 
                     case Voucher.REDEEM_VOUCHER:
-
-                        break;
-
-                    case Voucher.VERIFY_API_CREDENTIAL:
-
                         break;
                 }
             }
@@ -273,7 +260,10 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             public void onError(int requestType, int responseCode, String errorMessage) {
                 switch(requestType){
                     case Voucher.CHECK_VOUCHER_VALIDITY:
-                        handleVoucharValidation("");
+                        handleVoucherValidation(null);
+                        break;
+
+                    case Voucher.REDEEM_VOUCHER:
                         break;
                 }
             }
@@ -282,22 +272,54 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             public void onException(int requestType, Exception e, String message) {
                 switch(requestType){
                     case Voucher.CHECK_VOUCHER_VALIDITY:
-                        handleVoucharValidation("");
+                        handleVoucherValidation(null);
+                        break;
+
+                    case Voucher.REDEEM_VOUCHER:
                         break;
                 }
             }
         });
     }
 
-    private void handleVoucharValidation(String response) {
-        boolean isValidVoucharCode = false;
-        Log.d("TAG", "handleVoucharValidation: " + response);
-        //Parse response json and take out the validations
-        if(!isValidVoucharCode) {
+    private void handleVoucherValidation(String response) {
+        Log.d("TAG", "handleVoucherValidation: " + response);
+
+        String message = getString(R.string.coupon_success);
+
+        if (response == null){
             voucherCode = "";
-            Toast.makeText(this, "Apply coupon failed", Toast.LENGTH_SHORT).show();
+            message = getString(R.string.coupon_generic_error);
         } else {
-            Toast.makeText(this, "Coupon applied successfully", Toast.LENGTH_SHORT).show();
+            try {
+                JSONObject respObj = new JSONObject(response);
+                String statusString = respObj.getString(getString(R.string.validationStatus));
+                JSONObject statusJson = new JSONObject(statusString);
+                if (statusJson.getString(getString(R.string.status)).equals(Voucher.VOUCHERVALID)) {
+                    String dataString = respObj.getString(getString(R.string.data));
+                    JSONObject dataJson = new JSONObject(dataString);
+
+                    String tag = dataJson.getString(getString(R.string.tag));
+                    String respVoucherCode = dataJson.getString(getString(R.string.voucherCode));
+
+                    if (respVoucherCode.equals(voucherCode)) {
+                        offerDiscount = dataJson.getDouble(getString(R.string.value));
+                        toPayTotal = toPayTotal - offerDiscount;
+                        updateBillDetailValues();
+                    } else {
+                        voucherCode = "";
+                        message = getString(R.string.coupon_generic_error);
+                    }
+                } else {
+                    voucherCode = "";
+                    message = statusJson.getString(getString(R.string.message));
+                }
+            } catch (JSONException e) {
+                voucherCode = "";
+                message = getString(R.string.coupon_generic_error);
+                e.printStackTrace();
+            }
         }
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 }

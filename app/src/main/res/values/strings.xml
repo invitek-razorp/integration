@@ -1,3 +1,25 @@
 <resources>
     <string name="app_name">InviteKaro App</string>
+    <!-- Sample Data json fields -->
+    <string name="dataFile">data.json</string>
+    <string name="cards">cards</string>
+    <string name="cardType">cardType</string>
+    <string name="cardName">cardName</string>
+    <string name="cardDetail">cardDetail</string>
+    <string name="cardPrice">cardPrice</string>
+
+    <!-- Vouchar API data fields -->
+    <string name="validationStatus">validation_status</string>
+    <string name="status">status</string>
+    <string name="data">data</string>
+    <string name="tag">tag</string>
+    <string name="voucherCode">voucher_code</string>
+    <string name="value">value</string>
+    <string name="message">message</string>
+
+    <!-- Coupon messages -->
+    <string name="coupon_success">Coupon applied successfully</string>
+    <string name="coupon_generic_error">Issue while applying the coupon code, please retry.</string>
+
+
 </resources>

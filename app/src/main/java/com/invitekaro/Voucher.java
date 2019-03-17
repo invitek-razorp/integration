@@ -422,4 +422,6 @@ public class Voucher {
     public static final int LOGIN                  = 7;
     public static final int CREATE_VOUCHER         = 11;
     public static final int SIGN_UP                = 13;
+
+    public static final String VOUCHERVALID        = "1000";
 }
