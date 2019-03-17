@@ -1,5 +1,8 @@
 package com.invitekaro;
 
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.os.AsyncTask;
 import android.util.Base64;
 import android.util.Log;
 import org.json.JSONException;
@@ -306,6 +309,9 @@ public class Voucher {
         }
     }
 
+    public void checkValidityAsync(String voucherCode){
+        new AsyncQuery().execute(voucherCode, "hello");
+    }
 
     public void checkValidity(String voucherCode){
 
@@ -415,6 +421,44 @@ public class Voucher {
         void onException(int requestType, Exception e, String message);
     }
 
+    public class AsyncQuery extends AsyncTask<String, Void, Void> {
+
+        private ProgressDialog mProgress;
+
+        @Override
+        protected void onPreExecute() {
+            //Create progress dialog here and show it
+            //this.mProgress = ProgressDialog.show(Voucher.this.appContext, "hello", "hello2");
+            //mProgress.show();
+        }
+
+        @Override
+        protected Void doInBackground(String... params) {
+
+            String voucherCode = params[0];
+            String q = params[1];
+            // Execute query here
+            Log.d("AsyncQuery", "doInBackground: " + voucherCode + q);
+
+            checkValidity(voucherCode);
+
+            return null;
+
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            Log.d("AsyncQuery", "onPostExecute: ");
+            //mProgress.dismiss();
+
+            //update your listView adapter here
+            //Dismiss your dialog
+
+        }
+
+    }
+
 
     public static final int VERIFY_API_CREDENTIAL  = 2;
     public static final int CHECK_VOUCHER_VALIDITY = 3;
@@ -424,4 +468,5 @@ public class Voucher {
     public static final int SIGN_UP                = 13;
 
     public static final String VOUCHERVALID        = "1000";
+    public static final String NOT_REDEEMED        = "0";
 }

@@ -14,6 +14,7 @@
     <string name="data">data</string>
     <string name="tag">tag</string>
     <string name="voucherCode">voucher_code</string>
+    <string name="redeemed">redeemed</string>
     <string name="value">value</string>
     <string name="message">message</string>
 

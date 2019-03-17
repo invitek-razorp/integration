@@ -2,6 +2,7 @@ package com.invitekaro;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.StrictMode;
@@ -27,6 +28,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements PaymentResultListener {
 
@@ -37,6 +39,8 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     private double checkoutPrize = 0.0;
     private double offerDiscount = 0.0;
     private double toPayTotal = 0.0;
+    private List<String> cardTypesList = new ArrayList<String>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +79,8 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
                 cardList.add(cardItem);
 
                 checkoutPrize += cardItem.getCardPriceValue();
+
+                cardTypesList.add(cardItem.getCardType().toLowerCase());
             }
 
         } catch (IOException ex) {
@@ -104,7 +110,6 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             parentLayout.addView(view);
         }
 
-        toPayTotal = checkoutPrize - offerDiscount;
         updateBillDetailValues();
 
         Checkout.preload(getApplicationContext());
@@ -147,6 +152,8 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     }
 
     private void updateBillDetailValues(){
+
+        toPayTotal = checkoutPrize - offerDiscount;
 
         TextView priceValueText = (TextView)findViewById(R.id.itemTotal);
         priceValueText.setText(getPriceDisplayValue(checkoutPrize));
@@ -225,7 +232,10 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
     public void verifyAndStoreVoucherCode(String voucherCode){
         if (voucherInterface != null){
-            voucherInterface.checkValidity(voucherCode);
+            //voucherInterface.checkValidity(voucherCode);
+            LinearLayout progressBar = (LinearLayout) findViewById(R.id.progressbar);
+            progressBar.setVisibility(View.VISIBLE);
+            voucherInterface.checkValidityAsync(voucherCode);
         }
     }
 
@@ -289,6 +299,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
 
         if (response == null){
             voucherCode = "";
+            offerDiscount = 0.0;
             message = getString(R.string.coupon_generic_error);
         } else {
             try {
@@ -299,27 +310,55 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
                     String dataString = respObj.getString(getString(R.string.data));
                     JSONObject dataJson = new JSONObject(dataString);
 
-                    String tag = dataJson.getString(getString(R.string.tag));
+                    JSONArray voucherForCardType = dataJson.getJSONArray(getString(R.string.tag));
                     String respVoucherCode = dataJson.getString(getString(R.string.voucherCode));
+                    String redeemed = dataJson.getString(getString(R.string.redeemed));
 
-                    if (respVoucherCode.equals(voucherCode)) {
+                    if (respVoucherCode.equals(voucherCode)
+                            && hasRedeemableCardTypeInCart(voucherForCardType)
+                            && redeemed.equals(Voucher.NOT_REDEEMED)) {
                         offerDiscount = dataJson.getDouble(getString(R.string.value));
-                        toPayTotal = toPayTotal - offerDiscount;
-                        updateBillDetailValues();
                     } else {
                         voucherCode = "";
+                        offerDiscount = 0.0;
                         message = getString(R.string.coupon_generic_error);
                     }
                 } else {
                     voucherCode = "";
+                    offerDiscount = 0.0;
                     message = statusJson.getString(getString(R.string.message));
                 }
             } catch (JSONException e) {
                 voucherCode = "";
+                offerDiscount = 0.0;
                 message = getString(R.string.coupon_generic_error);
                 e.printStackTrace();
             }
         }
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+
+        final String _message = message;
+        final Context that = this;
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                updateBillDetailValues();
+                LinearLayout progressBar = (LinearLayout) findViewById(R.id.progressbar);
+                progressBar.setVisibility(View.INVISIBLE);
+                Toast.makeText(that, _message, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private boolean hasRedeemableCardTypeInCart(JSONArray voucherForCardType){
+        try {
+            for (int i=0; i<voucherForCardType.length(); i++) {
+                if (cardTypesList.contains(voucherForCardType.getString(i))) {
+                    return true;
+                }
+            }
+        } catch (JSONException e){}
+
+        return false;
     }
 }
