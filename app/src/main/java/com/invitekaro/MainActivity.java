@@ -5,7 +5,6 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -35,26 +34,16 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
     Voucher voucherInterface = null;
 
     ArrayList<Card> cardList = new ArrayList<>();
+    private List<String> cardTypesList = new ArrayList<String>();
     private String voucherCode = "";
     private double checkoutPrize = 0.0;
     private double offerDiscount = 0.0;
     private double toPayTotal = 0.0;
-    private List<String> cardTypesList = new ArrayList<String>();
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        int SDK_INT = android.os.Build.VERSION.SDK_INT;
-        if (SDK_INT > 8)
-        {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
-                    .permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-            //your codes here
-
-        }
 
         String json = null;
         try {
@@ -110,6 +99,7 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             parentLayout.addView(view);
         }
 
+        setDefaultDiscount();
         updateBillDetailValues();
 
         Checkout.preload(getApplicationContext());
@@ -135,8 +125,8 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             builder.setPositiveButton("Add", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                voucherCode = input.getText().toString();
-                verifyAndStoreVoucherCode(voucherCode);
+                    voucherCode = input.getText().toString();
+                    verifyAndStoreVoucherCode(voucherCode);
                 }
             });
             builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -149,6 +139,25 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
             builder.show();
             }
         });
+    }
+
+    private void setDefaultDiscount(){
+        int discountPercentage = 0;
+        if (cardList.size() >= 4) {
+            discountPercentage = 20;
+        } else if (cardList.size() >= 3) {
+            discountPercentage = 15;
+        } else if (cardList.size() >= 2) {
+            discountPercentage = 10;
+        }
+        if (discountPercentage > 0) {
+            View view = findViewById(R.id.discount_card);
+            view.setVisibility(View.GONE);
+        } else {
+            View view = findViewById(R.id.discount_card);
+            view.setVisibility(View.VISIBLE);
+        }
+        offerDiscount = (checkoutPrize * discountPercentage) / 100;
     }
 
     private void updateBillDetailValues(){
@@ -296,10 +305,12 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         Log.d("TAG", "handleVoucherValidation: " + response);
 
         String message = getString(R.string.coupon_success);
+        double responseDiscount = 0;
 
+        setDefaultDiscount();
         if (response == null){
             voucherCode = "";
-            offerDiscount = 0.0;
+            responseDiscount = 0.0;
             message = getString(R.string.coupon_generic_error);
         } else {
             try {
@@ -317,24 +328,25 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
                     if (respVoucherCode.equals(voucherCode)
                             && hasRedeemableCardTypeInCart(voucherForCardType)
                             && redeemed.equals(Voucher.NOT_REDEEMED)) {
-                        offerDiscount = dataJson.getDouble(getString(R.string.value));
+                        responseDiscount = dataJson.getDouble(getString(R.string.value));
                     } else {
                         voucherCode = "";
-                        offerDiscount = 0.0;
+                        responseDiscount = 0.0;
                         message = getString(R.string.coupon_generic_error);
                     }
                 } else {
                     voucherCode = "";
-                    offerDiscount = 0.0;
+                    responseDiscount = 0.0;
                     message = statusJson.getString(getString(R.string.message));
                 }
             } catch (JSONException e) {
                 voucherCode = "";
-                offerDiscount = 0.0;
+                responseDiscount = 0.0;
                 message = getString(R.string.coupon_generic_error);
                 e.printStackTrace();
             }
         }
+        offerDiscount += responseDiscount;
 
         final String _message = message;
         final Context that = this;

@@ -20,7 +20,7 @@
 
     <!-- Coupon messages -->
     <string name="coupon_success">Coupon applied successfully</string>
-    <string name="coupon_generic_error">Issue while applying the coupon code, please retry.</string>
+    <string name="coupon_generic_error">Error while applying the coupon code, please retry.</string>
 
 
 </resources>

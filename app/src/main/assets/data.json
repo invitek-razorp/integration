@@ -5,14 +5,12 @@
       "cardType": "Wedding",
       "cardName": "Pink Petals",
       "cardDetail": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam"
-
     },
     {
       "cardPrice": "4000",
       "cardType": "Cocktail",
       "cardName": "Cocktails Invitation",
       "cardDetail": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam"
-
     }
   ]
 
