@@ -150,13 +150,15 @@ public class MainActivity extends AppCompatActivity implements PaymentResultList
         } else if (cardList.size() >= 2) {
             discountPercentage = 10;
         }
-        if (discountPercentage > 0) {
+
+        if (cardList.size() >= 4) {
             View view = findViewById(R.id.discount_card);
             view.setVisibility(View.GONE);
         } else {
             View view = findViewById(R.id.discount_card);
             view.setVisibility(View.VISIBLE);
         }
+
         offerDiscount = (checkoutPrize * discountPercentage) / 100;
     }
 
